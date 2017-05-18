@@ -103,6 +103,8 @@ tc qdisc del dev $IFB root
 iptables -t mangle -F PREROUTING
 iptables -t mangle -F POSTROUTING
 iptables -t mangle -F FORWARD
+iptables -t mangle -F QOS_SLOWDOWN
+iptables -t mangle -X QOS_SLOWDOWN
 iptables -t mangle -F QOS_DOWNLOAD
 iptables -t mangle -X QOS_DOWNLOAD
 iptables -t mangle -F QOS_UPLOAD
