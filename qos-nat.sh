@@ -1,6 +1,6 @@
 #!/bin/bash
 
-WAN="eth0"
+WAN="ens3"
 IFB="ifb0"
 DOWNLOAD="102400kbit"
 UPLOAD="102400kbit"
@@ -29,13 +29,24 @@ function iptables_rules(){
 #Qos chains
 iptables -t mangle -N QOS_DOWNLOAD
 iptables -t mangle -N QOS_UPLOAD
+iptables -t mangle -N QOS_SLOWDOWN
+iptables -t mangle -A FORWARD -j QOS_SLOWDOWN
 iptables -t mangle -A FORWARD -j QOS_DOWNLOAD
 iptables -t mangle -A POSTROUTING -j QOS_UPLOAD
 #restore mark for previously marked connection
 iptables -t mangle -A PREROUTING -m conntrack ! --ctstate NEW -m connmark ! --mark 0 -j CONNMARK --restore-mark
-#mark traffic in order to march the Qos class
-iptables -t mangle -A QOS_DOWNLOAD -m mark --mark 0 -s 192.168.122.10 -o $WAN -p tcp -m multiport --dports 80,443 -m conntrack --ctstate  NEW -j MARK --set-mark 10
-iptables -t mangle -A QOS_DOWNLOAD -m mark --mark 0 -s 192.168.122.10 -o $WAN -p tcp -m multiport --dports 1024:65535 -m conntrack --ctstate  NEW -j MARK --set-mark 11
+#slow down if traffic generated is higher than 30MB
+iptables -t mangle -A QOS_SLOWDOWN -s 192.168.122.10 -o $WAN \
+-p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes 30000000: --connbytes-dir both --connbytes-mode bytes -j MARK --set-mark 11
+iptables -t mangle -A QOS_SLOWDOWN -s 192.168.122.10 -o $WAN \
+-p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes 30000000: --connbytes-dir both --connbytes-mode bytes -j CONNMARK --save-mark
+#iptables -t mangle -A QOS_SLOWDOWN -s 192.168.122.10 -o $WAN \
+#-p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes 30000000: --connbytes-dir both --connbytes-mode bytes -j RETURN
+#mark traffic
+iptables -t mangle -A QOS_DOWNLOAD -m mark --mark 0 -s 192.168.122.10 -o $WAN \
+-p tcp -m multiport --dports 80,443,10443 -m conntrack --ctstate  NEW -j MARK --set-mark 10
+iptables -t mangle -A QOS_DOWNLOAD -m mark --mark 0 -s 192.168.122.10 -o $WAN \
+-p tcp -m multiport --dports 1024:65535 -m conntrack --ctstate  NEW -j MARK --set-mark 11
 #In this way i should not need to mark connection for upload,and the mark for download traffic shuold be maintained
 iptables -t mangle -A QOS_UPLOAD -o $WAN -s 192.168.122.10 -j CLASSIFY --set-class 1:21
 iptables -t mangle -A QOS_UPLOAD -o $WAN -s 192.168.122.10 -j RETURN
