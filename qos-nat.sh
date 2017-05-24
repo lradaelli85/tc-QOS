@@ -36,12 +36,12 @@ iptables -t mangle -A POSTROUTING -j QOS_UPLOAD
 #restore mark for previously marked connection
 iptables -t mangle -A PREROUTING -m conntrack ! --ctstate NEW -m connmark ! --mark 0 -j CONNMARK --restore-mark
 #slow down if traffic generated is higher than 30MB
-iptables -t mangle -A QOS_SLOWDOWN -s 192.168.122.10 -o $WAN \
--p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes 30000000: --connbytes-dir both --connbytes-mode bytes -j MARK --set-mark 11
-iptables -t mangle -A QOS_SLOWDOWN -s 192.168.122.10 -o $WAN \
--p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes 30000000: --connbytes-dir both --connbytes-mode bytes -j CONNMARK --save-mark
-#iptables -t mangle -A QOS_SLOWDOWN -s 192.168.122.10 -o $WAN \
-#-p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes 30000000: --connbytes-dir both --connbytes-mode bytes -j RETURN
+iptables -t mangle -A QOS_SLOWDOWN -s 192.168.122.10 -o $WAN -p tcp -m multiport \
+--dports 80,443,10443 -m connbytes --connbytes 30000000: --connbytes-dir both --connbytes-mode bytes -j MARK --set-mark 11
+
+iptables -t mangle -A QOS_SLOWDOWN -s 192.168.122.10 -o $WAN -p tcp -m multiport \
+--dports 80,443,10443 -m connbytes --connbytes 30000000: --connbytes-dir both \
+--connbytes-mode bytes -m mark ! --mark 0 -j CONNMARK --save-mark
 #mark traffic
 iptables -t mangle -A QOS_DOWNLOAD -m mark --mark 0 -s 192.168.122.10 -o $WAN \
 -p tcp -m multiport --dports 80,443,10443 -m conntrack --ctstate  NEW -j MARK --set-mark 10
