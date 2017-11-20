@@ -91,10 +91,10 @@ tc qdisc add dev $IFB root handle 1: htb default 12
 tc class add dev $IFB parent 1: classid 1:1 htb rate $WAN_DOWNLOAD burst 15k
 
 #high priority class - 1mb/s up to 4mb/s
-tc class add dev $IFB parent 1:1 classid 1:10 htb rate $GUARANTEED_DOWNLOAD_CLASS_1 ceil $MAX_DOWNLOAD_CLASS_1 quantum 1514 burst 15k prio 9
+tc class add dev $IFB parent 1:1 classid 1:10 htb rate $GUARANTEED_DOWNLOAD_CLASS_1 ceil $MAX_DOWNLOAD_CLASS_1 quantum 1514 burst 15k prio 0
 
 #low priority class - guarantee 512kb/s up to 512kb/s
-tc class add dev $IFB parent 1:1 classid 1:11 htb rate $GUARANTEED_DOWNLOAD_CLASS_2 ceil $MAX_DOWNLOAD_CLASS_2 quantum 1514 burst 15k prio 0
+tc class add dev $IFB parent 1:1 classid 1:11 htb rate $GUARANTEED_DOWNLOAD_CLASS_2 ceil $MAX_DOWNLOAD_CLASS_2 quantum 1514 burst 15k prio 9
 
 #bulk traffic - guarantee 256kb/s up to 10mb/s
 tc class add dev $IFB parent 1:1 classid 1:12 htb rate $DEF_DOWNLOAD_GUARANTEED ceil $DEF_DOWNLOAD_MAX quantum 1514 burst 15k prio 5
@@ -122,10 +122,10 @@ tc qdisc add dev $WAN root handle 1:0 htb default 23
 tc class add dev $WAN parent 1: classid 1:1 htb rate $WAN_UPLOAD burst 15k
 
 #high priority class - guarantee 512kb/s up to 2mkb/s
-tc class add dev $WAN parent 1:1 classid 1:21 htb rate $GUARANTEED_UPLOAD_CLASS_1 ceil $MAX_UPLOAD_CLASS_1 quantum 1514 burst 15k prio 9
+tc class add dev $WAN parent 1:1 classid 1:21 htb rate $GUARANTEED_UPLOAD_CLASS_1 ceil $MAX_UPLOAD_CLASS_1 quantum 1514 burst 15k prio 0
 
 #low priority class - guarantee 512kb/s up to 1mb/s
-tc class add dev $WAN parent 1:1 classid 1:22 htb rate $GUARANTEED_UPLOAD_CLASS_2 ceil $MAX_UPLOAD_CLASS_2 quantum 1514 burst 15k prio 0
+tc class add dev $WAN parent 1:1 classid 1:22 htb rate $GUARANTEED_UPLOAD_CLASS_2 ceil $MAX_UPLOAD_CLASS_2 quantum 1514 burst 15k prio 9
 
 #bulk traffic - guarantee 64kb/s up to 2mb/s
 tc class add dev $WAN parent 1:1 classid 1:23 htb rate $DEF_UPLOAD_GUARANTEED ceil $DEF_UPLOAD_MAX quantum 1514 burst 15k prio 5
