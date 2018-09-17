@@ -63,7 +63,7 @@ iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 1024:65535 \
 
 #In this way i should not need to mark connection for upload,and the mark for download traffic shuold be maintained
 #high prio traffic
-iptables -t mangle -m comment --comment "--512kb/s up to 2048kb/s--" -A QOS_UPLOAD -o $WAN -j CLASSIFY --set-class 1:21
+iptables -t mangle -m comment --comment "--512kb/s up to 2048kb/s--" -A QOS_UPLOAD -o $WAN -j CLASSIFY --set-class 1:$UP_HIGH_PRIO_MARK
 iptables -t mangle -A QOS_UPLOAD -o $WAN -j RETURN
 
 # #save mark of the previously marked connections
