@@ -27,9 +27,9 @@ iptables -t mangle -N QOS_DOWNLOAD
 iptables -t mangle -N QOS_SLOWDOWN
 iptables -t mangle -N RESTORE-MARK
 iptables -t mangle -N SAVE-MARK
-iptables -t mangle -A FORWARD -o $WAN -j QOS_SLOWDOWN
+iptables -t mangle -A FORWARD -j QOS_SLOWDOWN
 iptables -t mangle -A FORWARD -m mark --mark 0 -o $WAN -j QOS_DOWNLOAD
-iptables -t mangle -A FORWARD -j QOS_UPLOAD
+iptables -t mangle -A FORWARD -o $WAN -m mark ! --mark 0 -j QOS_UPLOAD
 iptables -t mangle -A PREROUTING -m connmark ! --mark 0 -j RESTORE-MARK
 iptables -t mangle -A POSTROUTING -m mark ! --mark 0 -j SAVE-MARK
 
@@ -39,7 +39,7 @@ iptables -t mangle -A RESTORE-MARK -m conntrack ! --ctstate NEW -j CONNMARK --re
 #slow down if traffic generated is higher than 30MB
 iptables -t mangle -A QOS_SLOWDOWN \
 -p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
---connbytes-dir both --connbytes-mode bytes -j MARK --set-mark $DOWN_LOW_PRIO_MARK
+--connbytes-dir both --connbytes-mode bytes -j CONNMARK --set-mark $DOWN_LOW_PRIO_MARK
 
 iptables -t mangle -A QOS_SLOWDOWN \
 -p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
@@ -63,8 +63,12 @@ iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 1024:65535 \
 
 #In this way i should not need to mark connection for upload,and the mark for download traffic shuold be maintained
 #high prio traffic
-iptables -t mangle -m comment --comment "--512kb/s up to 2048kb/s--" -A QOS_UPLOAD -o $WAN -j CLASSIFY --set-class 1:$UP_HIGH_PRIO_MARK
-iptables -t mangle -A QOS_UPLOAD -o $WAN -j RETURN
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $DOWN_HIGH_PRIO_MARK -j CLASSIFY --set-class 1:$UP_HIGH_PRIO_MARK
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $DOWN_HIGH_PRIO_MARK -j RETURN
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $DOWN_LOW_PRIO_MARK -j CLASSIFY --set-class 1:$UP_LOW_PRIO_MARK
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $DOWN_LOW_PRIO_MARK -j RETURN
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $DOWN_BULK_MARK -j CLASSIFY --set-class 1:$UP_BULK_MARK
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $DOWN_BULK_MARK -j RETURN
 
 # #save mark of the previously marked connections
 iptables -t mangle -A SAVE-MARK -m conntrack --ctstate NEW -j CONNMARK --save-mark
@@ -146,13 +150,13 @@ iptables -t mangle -F RESTORE-MARK
 iptables -t mangle -D PREROUTING -m connmark ! --mark 0 -j RESTORE-MARK
 iptables -t mangle -X RESTORE-MARK
 iptables -t mangle -F QOS_SLOWDOWN
-iptables -t mangle -D FORWARD -o $WAN -j QOS_SLOWDOWN
+iptables -t mangle -D FORWARD -j QOS_SLOWDOWN
 iptables -t mangle -X QOS_SLOWDOWN
 iptables -t mangle -F QOS_DOWNLOAD
 iptables -t mangle -D FORWARD -m mark --mark 0 -o $WAN -j QOS_DOWNLOAD
 iptables -t mangle -X QOS_DOWNLOAD
 iptables -t mangle -F QOS_UPLOAD
-iptables -t mangle -D FORWARD -j QOS_UPLOAD
+iptables -t mangle -D FORWARD -o $WAN -m mark ! --mark 0 -j QOS_UPLOAD
 iptables -t mangle -X QOS_UPLOAD
 iptables -t nat -D POSTROUTING -o $WAN -j MASQUERADE
 
