@@ -27,6 +27,7 @@ iptables -t mangle -N QOS_DOWNLOAD
 iptables -t mangle -N QOS_SLOWDOWN
 iptables -t mangle -N RESTORE-MARK
 iptables -t mangle -N SAVE-MARK
+iptables -t mangle -N QOS_DPI
 iptables -t mangle -A FORWARD -j QOS_SLOWDOWN
 iptables -t mangle -A FORWARD -m mark --mark 0 -o $WAN -j QOS_DOWNLOAD
 iptables -t mangle -A FORWARD -o $WAN -m mark ! --mark 0 -j QOS_UPLOAD
@@ -36,27 +37,36 @@ iptables -t mangle -A POSTROUTING -m mark ! --mark 0 -j SAVE-MARK
 #restore mark for previously marked connection
 iptables -t mangle -A RESTORE-MARK -m conntrack ! --ctstate NEW -j CONNMARK --restore-mark
 
+iptables -t mangle -A PREROUTING -j QOS_DPI
+
+#DPI for applications
+iptables -t mangle -A QOS_DPI -m connmark --mark $APP_LOW_PRIO_MARK -j RETURN
+iptables -t mangle -A QOS_DPI -m connmark --mark $APP_BULK_MARK -j RETURN
+iptables -t mangle -A QOS_DPI -m connmark --mark $APP_HIGH_PRIO_MARK -j RETURN
+iptables -t mangle -A QOS_DPI -m connbytes --connbytes-mode packets --connbytes-dir both --connbytes 20 -j RETURN
+iptables -t mangle -A QOS_DPI -m ndpi --youtube -j CONNMARK --set-mark $APP_LOW_PRIO_MARK
+iptables -t mangle -A QOS_DPI -m ndpi --facebook -j CONNMARK --set-mark $APP_BULK_MARK
+iptables -t mangle -A QOS_DPI -m ndpi --dropbox -j CONNMARK --set-mark $APP_HIGH_PRIO_MARK
+
 #slow down if traffic generated is higher than 30MB
 iptables -t mangle -A QOS_SLOWDOWN \
--p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
+-p tcp -m multiport --dports 80,443,20,21,990 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
 --connbytes-dir both --connbytes-mode bytes -j CONNMARK --set-mark $DOWN_LOW_PRIO_MARK
 
 iptables -t mangle -A QOS_SLOWDOWN \
--p tcp -m multiport --dports 80,443,10443 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
+-p tcp -m multiport --dports 80,443,20,21,990 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
 --connbytes-dir both --connbytes-mode bytes -j RETURN
 
 #high prio traffic
-iptables -t mangle -A QOS_DOWNLOAD -m comment --comment "--1mb/s up to 4mb/s--" \
--p tcp -m multiport --dports 80,443 \
--m conntrack --ctstate NEW -j MARK --set-mark $DOWN_HIGH_PRIO_MARK
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 80,443,22 \
+-m conntrack --ctstate NEW -j CONNMARK --set-mark $DOWN_HIGH_PRIO_MARK
 
-iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 80,443 \
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 80,443,22 \
 -m conntrack --ctstate NEW -j RETURN
 
 #low prio traffic
-iptables -t mangle -A QOS_DOWNLOAD -m comment --comment "--512kb/s up to 512kb/s--" \
--p tcp -m multiport --dports 1024:65535 \
--m conntrack --ctstate NEW -j MARK --set-mark $DOWN_LOW_PRIO_MARK
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 1024:65535 \
+-m conntrack --ctstate NEW -j CONNMARK --set-mark $DOWN_LOW_PRIO_MARK
 
 iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 1024:65535 \
 -m conntrack --ctstate NEW -j RETURN
@@ -78,29 +88,35 @@ function start(){
 
 system_stuff
 #######################DOWNLOAD#############################################
-#Defult class is 12 - bulk traffic
+#Defult class is bulk traffic class
 tc qdisc add dev $IFB root handle 1: htb default $DOWN_BULK_MARK
 
-#set download value
+#set global download value
 tc class add dev $IFB parent 1: classid 1:1 htb rate $WAN_DOWNLOAD burst 15k
 
-#high priority class - 1mb/s up to 4mb/s
+#high priority class
 tc class add dev $IFB parent 1:1 classid 1:$DOWN_HIGH_PRIO_MARK htb rate $HIGH_PRIO_DOWN_GUARANTEED  \
 ceil $HIGH_PRIO_DOWN_MAX quantum 1514 burst 15k prio 0
 
-#low priority class - guarantee 512kb/s up to 512kb/s
+#low priority class
 tc class add dev $IFB parent 1:1 classid 1:$DOWN_LOW_PRIO_MARK htb rate $LOW_PRIO_DOWN_GUARANTEED \
 ceil $LOW_PRIO_DOWN_MAX quantum 1514 burst 15k prio 9
 
-#bulk traffic - guarantee 256kb/s up to 10mb/s
+#bulk traffic class
 tc class add dev $IFB parent 1:1 classid 1:$DOWN_BULK_MARK htb rate $DOWNLOAD_GUARANTEED_DEFAULT \
 ceil $DOWNLOAD_MAX_DEFAULT quantum 1514 burst 15k prio 5
 
-#use class 10 [high prio] for every connection marked with 10
+#use class [high prio]
 tc filter add dev $IFB parent 1:0 protocol ip handle $DOWN_HIGH_PRIO_MARK fw flowid 1:$DOWN_HIGH_PRIO_MARK
+tc filter add dev $IFB parent 1:0 protocol ip handle $APP_HIGH_PRIO_MARK fw flowid 1:$DOWN_HIGH_PRIO_MARK
 
-#use class 11 [low prio] for every connection marked with 11
+#use class [low prio]
 tc filter add dev $IFB parent 1:0 protocol ip handle $DOWN_LOW_PRIO_MARK fw flowid 1:$DOWN_LOW_PRIO_MARK
+tc filter add dev $IFB parent 1:0 protocol ip handle $APP_LOW_PRIO_MARK fw flowid 1:$DOWN_LOW_PRIO_MARK
+
+#use class [bulk traffic]
+tc filter add dev $IFB parent 1:0 protocol ip handle $DOWN_BULK_MARK fw flowid 1:$DOWN_BULK_MARK
+tc filter add dev $IFB parent 1:0 protocol ip handle $APP_BULK_MARK fw flowid 1:$DOWN_BULK_MARK
 
 # Tell which algorithm the classes use
 tc qdisc add dev $IFB parent 1:$DOWN_HIGH_PRIO_MARK sfq perturb 10
@@ -113,19 +129,19 @@ tc filter add dev $WAN parent ffff: protocol ip u32 match u32 0 0 action \
 connmark action mirred egress redirect dev $IFB
 
 # ######################UPLOAD################################################
-#default class is 23
+#default class is bulk traffic class
 tc qdisc add dev $WAN root handle 1:0 htb default $UP_BULK_MARK
 
-#set the upload value
+#set the global upload value
 tc class add dev $WAN parent 1: classid 1:1 htb rate $WAN_UPLOAD burst 15k
 
-#high priority class - guarantee 512kb/s up to 2mkb/s
+#high priority class
 tc class add dev $WAN parent 1:1 classid 1:$UP_HIGH_PRIO_MARK htb rate $HIGH_PRIO_UP_GUARANTEED ceil $HIGH_PRIO_UP_MAX quantum 1514 burst 15k prio 0
 
-#low priority class - guarantee 512kb/s up to 1mb/s
+#low priority class
 tc class add dev $WAN parent 1:1 classid 1:$UP_LOW_PRIO_MARK htb rate $LOW_PRIO_UP_GUARANTEED ceil $LOW_PRIO_UP_MAX quantum 1514 burst 15k prio 9
 
-#bulk traffic - guarantee 64kb/s up to 2mb/s
+#bulk traffic class
 tc class add dev $WAN parent 1:1 classid 1:$UP_BULK_MARK htb rate $UPLOAD_GUARANTEED_DEFAULT ceil $UPLOAD_MAX_DEFAULT quantum 1514 burst 15k prio 5
 
 # Tell which algorithm the classes use
@@ -158,6 +174,9 @@ iptables -t mangle -X QOS_DOWNLOAD
 iptables -t mangle -F QOS_UPLOAD
 iptables -t mangle -D FORWARD -o $WAN -m mark ! --mark 0 -j QOS_UPLOAD
 iptables -t mangle -X QOS_UPLOAD
+iptables -t mangle -F QOS_DPI
+iptables -t mangle -D PREROUTING -j QOS_DPI
+iptables -t mangle -X QOS_DPI
 iptables -t nat -D POSTROUTING -o $WAN -j MASQUERADE
 
 #disable forwarding
