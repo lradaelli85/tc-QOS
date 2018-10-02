@@ -37,6 +37,7 @@ iptables -t mangle -A POSTROUTING -m mark ! --mark 0 -j SAVE-MARK
 #restore mark for previously marked connection
 iptables -t mangle -A RESTORE-MARK -m conntrack ! --ctstate NEW -j CONNMARK --restore-mark
 
+#Send everything to nDPI to applications detection
 iptables -t mangle -A PREROUTING -j QOS_DPI
 
 #DPI for applications
@@ -48,6 +49,8 @@ iptables -t mangle -A QOS_DPI -m ndpi --youtube -j CONNMARK --set-mark $APP_LOW_
 iptables -t mangle -A QOS_DPI -m ndpi --facebook -j CONNMARK --set-mark $APP_BULK_MARK
 iptables -t mangle -A QOS_DPI -m ndpi --dropbox -j CONNMARK --set-mark $APP_HIGH_PRIO_MARK
 
+if [ $ENABLE_SLOWDOWN == "on" ]
+then
 #slow down if traffic generated is higher than 30MB
 iptables -t mangle -A QOS_SLOWDOWN \
 -p tcp -m multiport --dports 80,443,20,21,990 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
@@ -56,6 +59,7 @@ iptables -t mangle -A QOS_SLOWDOWN \
 iptables -t mangle -A QOS_SLOWDOWN \
 -p tcp -m multiport --dports 80,443,20,21,990 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
 --connbytes-dir both --connbytes-mode bytes -j RETURN
+fi
 
 #high prio traffic
 iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 80,443,22 \
