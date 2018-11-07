@@ -2,20 +2,20 @@
 
 Linux QoS built with tc and HTB.
 
-#Rquirements
+# Requirements
 
 - iproute2
 - act_mirred and act_connmark kernel support
 - {optional} [nDPI](https://github.com/ntop/nDPI) for L7 classification
 
-#Features
+# Features
 
 - Handle Download traffic (i.e traffic coming from WAN)
 - Handle Upload traffic (i.e traffic to WAN)
 - {optional} Classify L7 traffic
 - {optional} Slowdown (set a low priority) those connections that go beyond a fixed amount of traffic (i.e big download)
 
-#Introduction
+# Introduction
 
 The aim of this script is to guarantee (bandwidth can't go below this value) , limit (maximum bandwidth usable) and prioritize certain kind of traffic.
 
