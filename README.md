@@ -1,4 +1,4 @@
-# tc-QOS
+# QOS with L7 (layer7) support
 
 Linux QoS built with tc and HTB.
 
