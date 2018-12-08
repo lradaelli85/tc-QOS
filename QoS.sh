@@ -227,18 +227,24 @@ iptables -t mangle -X SAVE-MARK
 iptables -t mangle -F RESTORE-MARK
 iptables -t mangle -D PREROUTING -m connmark ! --mark 0 -j RESTORE-MARK
 iptables -t mangle -X RESTORE-MARK
-iptables -t mangle -F QOS_SLOWDOWN
-iptables -t mangle -D FORWARD -j QOS_SLOWDOWN
-iptables -t mangle -X QOS_SLOWDOWN
+if [ $ENABLE_SLOWDOWN == "on" ]
+	then
+		iptables -t mangle -F QOS_SLOWDOWN
+		iptables -t mangle -D FORWARD -j QOS_SLOWDOWN
+		iptables -t mangle -X QOS_SLOWDOWN
+fi		
 iptables -t mangle -F QOS_DOWNLOAD
 iptables -t mangle -D FORWARD -m mark --mark 0 -o $WAN -j QOS_DOWNLOAD
 iptables -t mangle -X QOS_DOWNLOAD
 iptables -t mangle -F QOS_UPLOAD
 iptables -t mangle -D FORWARD -o $WAN -m mark ! --mark 0 -j QOS_UPLOAD
 iptables -t mangle -X QOS_UPLOAD
-iptables -t mangle -F QOS_DPI
-iptables -t mangle -D PREROUTING -j QOS_DPI
-iptables -t mangle -X QOS_DPI
+if [ $ENABLE_L7 == "on" ]
+  then
+	iptables -t mangle -F QOS_DPI
+	iptables -t mangle -D PREROUTING -j QOS_DPI
+	iptables -t mangle -X QOS_DPI
+fi	
 iptables -t nat -D POSTROUTING -o $WAN -j MASQUERADE
 }
 
