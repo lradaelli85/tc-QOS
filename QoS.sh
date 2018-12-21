@@ -29,6 +29,7 @@ rmmod ifb
 rmmod act_mirred
 }
 
+
 function l7_classification(){
 iptables -t mangle -N QOS_DPI
 
@@ -61,6 +62,13 @@ if [ ${#HIGH_PRIO_APP[@]} -gt 0 ]
       iptables -t mangle -A QOS_DPI -m ndpi --$app -j CONNMARK --set-mark $APP_HIGH_PRIO_MARK
     done
 fi
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $APP_HIGH_PRIO_MARK -j CLASSIFY --set-class 1:$UP_HIGH_PRIO_MARK
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $APP_HIGH_PRIO_MARK -j RETURN
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $APP_LOW_PRIO_MARK -j CLASSIFY --set-class 1:$UP_LOW_PRIO_MARK
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $APP_LOW_PRIO_MARK -j RETURN
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $APP_BULK_MARK -j CLASSIFY --set-class 1:$UP_BULK_MARK
+iptables -t mangle -A QOS_UPLOAD -m mark --mark $APP_BULK_MARK -j RETURN
+
 }
 
 function slowdown(){
@@ -170,15 +178,23 @@ ceil $DOWNLOAD_MAX_DEFAULT quantum 1514 burst 15k prio 5
 
 #use class [high prio]
 tc filter add dev $IFB parent 1:0 protocol ip handle $DOWN_HIGH_PRIO_MARK fw flowid 1:$DOWN_HIGH_PRIO_MARK
-tc filter add dev $IFB parent 1:0 protocol ip handle $APP_HIGH_PRIO_MARK fw flowid 1:$DOWN_HIGH_PRIO_MARK
 
 #use class [low prio]
 tc filter add dev $IFB parent 1:0 protocol ip handle $DOWN_LOW_PRIO_MARK fw flowid 1:$DOWN_LOW_PRIO_MARK
-tc filter add dev $IFB parent 1:0 protocol ip handle $APP_LOW_PRIO_MARK fw flowid 1:$DOWN_LOW_PRIO_MARK
 
 #use class [bulk traffic]
 tc filter add dev $IFB parent 1:0 protocol ip handle $DOWN_BULK_MARK fw flowid 1:$DOWN_BULK_MARK
-tc filter add dev $IFB parent 1:0 protocol ip handle $APP_BULK_MARK fw flowid 1:$DOWN_BULK_MARK
+
+
+if [ $ENABLE_L7 == "on" ]
+  then
+    #use class [high prio]
+    tc filter add dev $IFB parent 1:0 protocol ip handle $APP_HIGH_PRIO_MARK fw flowid 1:$DOWN_HIGH_PRIO_MARK
+    #use class [low prio]
+    tc filter add dev $IFB parent 1:0 protocol ip handle $APP_LOW_PRIO_MARK fw flowid 1:$DOWN_LOW_PRIO_MARK
+    #use class [bulk traffic]
+    tc filter add dev $IFB parent 1:0 protocol ip handle $APP_BULK_MARK fw flowid 1:$DOWN_BULK_MARK
+fi
 
 # Tell which algorithm the classes use
 tc qdisc add dev $IFB parent 1:$DOWN_HIGH_PRIO_MARK sfq perturb 10
@@ -227,18 +243,24 @@ iptables -t mangle -X SAVE-MARK
 iptables -t mangle -F RESTORE-MARK
 iptables -t mangle -D PREROUTING -m connmark ! --mark 0 -j RESTORE-MARK
 iptables -t mangle -X RESTORE-MARK
-iptables -t mangle -F QOS_SLOWDOWN
-iptables -t mangle -D FORWARD -j QOS_SLOWDOWN
-iptables -t mangle -X QOS_SLOWDOWN
+if [ $ENABLE_SLOWDOWN == "on" ]
+  then
+    iptables -t mangle -F QOS_SLOWDOWN
+    iptables -t mangle -D FORWARD -j QOS_SLOWDOWN
+    iptables -t mangle -X QOS_SLOWDOWN
+fi
 iptables -t mangle -F QOS_DOWNLOAD
 iptables -t mangle -D FORWARD -m mark --mark 0 -o $WAN -j QOS_DOWNLOAD
 iptables -t mangle -X QOS_DOWNLOAD
 iptables -t mangle -F QOS_UPLOAD
 iptables -t mangle -D FORWARD -o $WAN -m mark ! --mark 0 -j QOS_UPLOAD
 iptables -t mangle -X QOS_UPLOAD
-iptables -t mangle -F QOS_DPI
-iptables -t mangle -D PREROUTING -j QOS_DPI
-iptables -t mangle -X QOS_DPI
+if [ $ENABLE_L7 == "on" ]
+  then
+    iptables -t mangle -F QOS_DPI
+    iptables -t mangle -D PREROUTING -j QOS_DPI
+    iptables -t mangle -X QOS_DPI
+fi
 iptables -t nat -D POSTROUTING -o $WAN -j MASQUERADE
 }
 
