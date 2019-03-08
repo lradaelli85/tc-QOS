@@ -19,13 +19,9 @@ Linux QoS built with tc and HTB.
 
 The aim of this script is to guarantee (bandwidth can't go below this value) , limit (maximum bandwidth usable) and prioritize certain kind of traffic.
 
-It has been designed to share the same internet link between different sources.
-
-This is done by using classes.
+It is designed to share the same internet link between different sources using three different kind of classes.
 
 *download/upload/guaranteed/limit/applications values present in qos.cfg have been used only as reference*
-
-This script has been designed to use three different kind of classes:
 
 #### - Bulk traffic
 
@@ -35,14 +31,14 @@ Modify the QoS.sh file if this is not what you want
 
 #### - Low priority traffic
 
-Traffic that has to be limited (small amount of available bandwidth) with a low priority.
+Traffic that you want to limit (small amount of available bandwidth) with a low priority.
 All high-ports (1024-65535, except some) are classified as low priority traffic.
 YOUTUBE,TWITTER,FACEBOOK,DROPBOX,SPOTIFY applications if L7 is enabled.
 Modify the QoS.sh and qos.cfg files if this is not what you want
 
 #### - High priority traffic
 
-Traffic that has to be prioritized.
+Traffic that you want to prioritize.
 This class has an high guaranteed bandwidth, high priority and it can use all the available up/down bandwidth
 HTTP(s),SSH,DNS,VOIP,IPsec,OpenVPN are classified as high priority traffic.
 STUN,RTP,H323,HANGOUT,SKYPE,OFFICE 365 applications if L7 is enabled.
@@ -52,7 +48,7 @@ When a class requests less than the amount assigned, the remaining (excess) band
 
 Classes with higher priority are offered excess bandwidth first. But rules about guaranteed rate (can't go below this value ) and ceil (maximum bandwidth usable by a class) are still met.
 
-This script automatically enable forwarding and source NAT
+This script automatically enables forwarding and source NAT.
 
 To learn more about HTB take a look to the below links (thanks to the Author)
 
@@ -64,16 +60,16 @@ http://luxik.cdi.cz/~devik/qos/htb/manual/theory.htm
 
 Edit the qos.cfg file and set the variables accordingly.For each variable there is a short explanation
 
-- to disable the slowdown feature set the `ENABLE_SLOWDOWN` value to `off`
-- to disable the L7 classification set the `ENABLE_L7` value to `off`
+- slowdown feature is enabled by default, to disable it ,set the `ENABLE_SLOWDOWN` value to `off`.
+- L7 classification is enabled by default, to disable it ,set the `ENABLE_L7` value to `off`
 
 To check supported applications run `iptables -m ndpi --help`
 
-Usually the `iptables mark` parameters does not need to be changed,do it only if you know what are you doing
+Usually the `iptables mark` parameters does not need to be changed,do it only if you know what are you doing.
 
-**NO FILTER POLICY HAVE BEEN ADDED**
+**NO FILTER POLICIES ARE PRESENT**
 
-The qos_class_mapping.cfg file contains a mapping (human readable) between the class ID and the class Description.
+The qos_class_mapping.cfg file contains a mapping (human readable) between the class ID and the class description.
 If you will change the `iptables mark` values in the qos.cfg remember to update the qos_class_mapping.cfg accordingly.
 
 To run the script issue the below command
@@ -124,9 +120,9 @@ Below an example of the output
                                      rate 0bit 0pps backlog 0b 0p requeues 0
 ```
 
-I decided to classify as bulk traffic all low ports traffic (0-1023) explicitly (except some tcp/udp ports.See Introduction).
-Actually,you can also classify as bulk all the not-classified traffic (i.e no high/low prio traffic) uncommenting
-the `#default $DOWN_BULK_MARK` line in QoS.sh file.
+All low ports traffic (0-1023) are classified as bulk traffic explicitly (except some tcp/udp ports.See Introduction).
+Actually,you can also classify as bulk all the not-classified traffic (i.e no high/low prio traffic) removing the comment
+before the `#default $DOWN_BULK_MARK` line in QoS.sh file.
 
 # NOTES
-if you uncomment the `#default $DOWN_BULK_MARK` in QoS.sh,the locally-generated-traffic will be classified as bulk by default ,since this script classify only traffic that will be routed to WAN interface.
+if you uncomment the `#default $DOWN_BULK_MARK` in QoS.sh,the locally-generated-traffic will be classified as bulk by default.
