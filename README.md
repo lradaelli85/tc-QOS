@@ -27,14 +27,14 @@ It is designed to share the same internet link between different sources using t
 
 This class has a low guaranteed bandwidth,medium priority and it can use all the available up/down bandwidth
 All low-ports (0-1023, except some) are classified as bulk traffic.
-Modify the QoS.sh file if this is not what you want
+Modify the qos.cfg files if this is not what you want.
 
 #### - Low priority traffic
 
 Traffic that you want to limit (small amount of available bandwidth) with a low priority.
 All high-ports (1024-65535, except some) are classified as low priority traffic.
 YOUTUBE,TWITTER,FACEBOOK,DROPBOX,SPOTIFY applications if L7 is enabled.
-Modify the QoS.sh and qos.cfg files if this is not what you want
+Modify the qos.cfg files if this is not what you want.
 
 #### - High priority traffic
 
@@ -42,7 +42,7 @@ Traffic that you want to prioritize.
 This class has an high guaranteed bandwidth, high priority and it can use all the available up/down bandwidth
 HTTP(s),SSH,DNS,VOIP,IPsec,OpenVPN are classified as high priority traffic.
 STUN,RTP,H323,HANGOUT,SKYPE,OFFICE 365 applications if L7 is enabled.
-Modify the QoS.sh and qos.cfg files if this is not what you want
+Modify the qos.cfg files if this is not what you want.
 
 When a class requests less than the amount assigned, the remaining (excess) bandwidth is distributed to other classes which request service.
 
@@ -58,14 +58,14 @@ http://luxik.cdi.cz/~devik/qos/htb/manual/theory.htm
 
 # Configuration and usage
 
-Edit the qos.cfg file and set the variables accordingly.For each variable there is a short explanation
+Edit the qos.cfg file and set the variables accordingly.For each variable there is a short explanation.
 
 - slowdown feature is enabled by default, to disable it ,set the `ENABLE_SLOWDOWN` value to `off`.
-- L7 classification is enabled by default, to disable it ,set the `ENABLE_L7` value to `off`
+- L7 classification is enabled by default, to disable it ,set the `ENABLE_L7` value to `off`.
 
-To check supported applications run `iptables -m ndpi --help`
+To check all the available applications run `iptables -m ndpi --help`
 
-Usually the `iptables mark` parameters does not need to be changed,do it only if you know what are you doing.
+Usually you don't need to change the `iptables mark` parameters ,do it only if you know what are you doing.
 
 **NO FILTER POLICIES ARE PRESENT**
 
@@ -121,8 +121,9 @@ Below an example of the output
 ```
 
 All low ports traffic (0-1023) are classified as bulk traffic explicitly (except some tcp/udp ports.See Introduction).
-Actually,you can also classify as bulk all the not-classified traffic (i.e no high/low prio traffic) removing the comment
-before the `#default $DOWN_BULK_MARK` line in QoS.sh file.
+Actually,you can also classify as bulk all the not-classified traffic (i.e no high/low prio traffic) setting to on
+the value of `BULK_DEFAULT` in qos.cfg file.
 
 # NOTES
-if you uncomment the `#default $DOWN_BULK_MARK` in QoS.sh,the locally-generated-traffic will be classified as bulk by default.
+If set to on the value of `BULK_DEFAULT` in qos.cfg file, the locally-generated-traffic will be classified as bulk by default.
+I personally suggest to keep it off to have a full control.

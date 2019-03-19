@@ -75,13 +75,27 @@ function slowdown(){
 iptables -t mangle -N QOS_SLOWDOWN
 iptables -t mangle -I FORWARD -j QOS_SLOWDOWN
 
+if [ ! -z ${TCP_SLOWDOWN_PORTS} ]
+then
 iptables -t mangle -A QOS_SLOWDOWN \
--p tcp -m multiport --dports 80,443,20,21,990 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
+-p tcp -m multiport --dports $TCP_SLOWDOWN_PORTS -m connbytes --connbytes $SLOWDOWN_QUOTA: \
 --connbytes-dir both --connbytes-mode bytes -j CONNMARK --set-mark $DOWN_LOW_PRIO_MARK
 
 iptables -t mangle -A QOS_SLOWDOWN \
--p tcp -m multiport --dports 80,443,20,21,990 -m connbytes --connbytes $SLOWDOWN_QUOTA: \
+-p tcp -m multiport --dports $TCP_SLOWDOWN_PORTS -m connbytes --connbytes $SLOWDOWN_QUOTA: \
 --connbytes-dir both --connbytes-mode bytes -j RETURN
+fi
+
+if [ ! -z ${UDP_SLOWDOWN_PORTS} ]
+then
+iptables -t mangle -A QOS_SLOWDOWN \
+-p udp -m multiport --dports $UDP_SLOWDOWN_PORTS -m connbytes --connbytes $SLOWDOWN_QUOTA: \
+--connbytes-dir both --connbytes-mode bytes -j CONNMARK --set-mark $DOWN_LOW_PRIO_MARK
+
+iptables -t mangle -A QOS_SLOWDOWN \
+-p udp -m multiport --dports $UDP_SLOWDOWN_PORTS -m connbytes --connbytes $SLOWDOWN_QUOTA: \
+--connbytes-dir both --connbytes-mode bytes -j RETURN
+fi
 }
 
 function add_iptables_rules(){
@@ -112,36 +126,45 @@ fi
 
 #high prio traffic
 #http(s),ssh
-iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 80,443,22 \
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports $TCP_HIGH_PRIO_PORTS \
 -m conntrack --ctstate NEW -j CONNMARK --set-mark $DOWN_HIGH_PRIO_MARK
 
-iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports 80,443,22 \
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports $TCP_HIGH_PRIO_PORTS \
 -m conntrack --ctstate NEW -j RETURN
 
 #voip,dns,ipsec,openvpn
-iptables -t mangle -A QOS_DOWNLOAD -p udp -m multiport --dports 5060,53,4500,500,1194 \
+iptables -t mangle -A QOS_DOWNLOAD -p udp -m multiport --dports $UDP_HIGH_PRIO_PORTS \
 -m conntrack --ctstate NEW -j CONNMARK --set-mark $DOWN_HIGH_PRIO_MARK
 
-iptables -t mangle -A QOS_DOWNLOAD -p udp -m multiport --dports 5060,53,4500,500,1194 \
+iptables -t mangle -A QOS_DOWNLOAD -p udp -m multiport --dports $UDP_HIGH_PRIO_PORTS \
 -m conntrack --ctstate NEW -j RETURN
 
-for prot in tcp udp
-do
 #bulk traffic
-iptables -t mangle -A QOS_DOWNLOAD -p $prot -m multiport --dports 0:1023 \
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports $TCP_BULK_PORTS \
 -m conntrack --ctstate NEW -j CONNMARK --set-mark $DOWN_BULK_MARK
 
-iptables -t mangle -A QOS_DOWNLOAD -p $prot -m multiport --dports 0:1023 \
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports $TCP_BULK_PORTS \
+-m conntrack --ctstate NEW -j RETURN
+
+iptables -t mangle -A QOS_DOWNLOAD -p udp -m multiport --dports $UDP_BULK_PORTS \
+-m conntrack --ctstate NEW -j CONNMARK --set-mark $DOWN_BULK_MARK
+
+iptables -t mangle -A QOS_DOWNLOAD -p udp -m multiport --dports $UDP_BULK_PORTS \
 -m conntrack --ctstate NEW -j RETURN
 
 #low prio traffic
-iptables -t mangle -A QOS_DOWNLOAD -p $prot -m multiport --dports 1024:65535 \
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports $TCP_LOW_PRIO_PORTS \
 -m conntrack --ctstate NEW -j CONNMARK --set-mark $DOWN_LOW_PRIO_MARK
 
-iptables -t mangle -A QOS_DOWNLOAD -p $prot -m multiport --dports 1024:65535 \
+iptables -t mangle -A QOS_DOWNLOAD -p tcp -m multiport --dports $TCP_LOW_PRIO_PORTS \
 -m conntrack --ctstate NEW -j RETURN
 
-done
+iptables -t mangle -A QOS_DOWNLOAD -p udp -m multiport --dports $UDP_LOW_PRIO_PORTS \
+-m conntrack --ctstate NEW -j CONNMARK --set-mark $DOWN_LOW_PRIO_MARK
+
+iptables -t mangle -A QOS_DOWNLOAD -p udp -m multiport --dports $UDP_LOW_PRIO_PORTS \
+-m conntrack --ctstate NEW -j RETURN
+
 
 #In this way i should not need to mark connection for upload,and the mark for download traffic shuold be maintained
 #high prio traffic
@@ -158,8 +181,13 @@ iptables -t mangle -A SAVE-MARK -m conntrack --ctstate NEW -j CONNMARK --save-ma
 
 function add_qos_devs_and_classes(){
 #######################DOWNLOAD#############################################
-#Defult class is bulk traffic class
-tc qdisc add dev $IFB root handle 1: htb #default $DOWN_BULK_MARK
+if [ $BULK_DEFAULT == "on" ]
+  then
+    #Defult class is bulk traffic class
+    tc qdisc add dev $IFB root handle 1: htb default $DOWN_BULK_MARK
+  else
+    tc qdisc add dev $IFB root handle 1: htb
+fi
 
 #set global download value
 tc class add dev $IFB parent 1: classid 1:1 htb rate $WAN_DOWNLOAD burst 15k
@@ -207,8 +235,13 @@ tc filter add dev $WAN parent ffff: protocol ip u32 match u32 0 0 action \
 connmark action mirred egress redirect dev $IFB
 
 #######################UPLOAD################################################
-#default class is bulk traffic class
-tc qdisc add dev $WAN root handle 1:0 htb #default $UP_BULK_MARK
+if [ $BULK_DEFAULT == "on" ]
+  then
+    #default class is bulk traffic class
+    tc qdisc add dev $WAN root handle 1:0 htb default $UP_BULK_MARK
+  else
+    tc qdisc add dev $WAN root handle 1:0 htb
+fi
 
 #set the global upload value
 tc class add dev $WAN parent 1: classid 1:1 htb rate $WAN_UPLOAD burst 15k
