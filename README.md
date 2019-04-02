@@ -50,6 +50,8 @@ Classes with higher priority are offered excess bandwidth first. But rules about
 
 This script automatically enables forwarding and source NAT.
 
+If this is not what you want set the `ENABLE_NAT` to `off` in qos.cfg file.
+
 To learn more about HTB take a look to the below links (thanks to the Author)
 
 http://luxik.cdi.cz/~devik/qos/htb/manual/userg.htm

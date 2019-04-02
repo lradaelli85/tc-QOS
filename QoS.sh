@@ -16,13 +16,19 @@ modprobe act_mirred
 #set ifb device as UP
 ip link set dev $IFB up
 
+if [ $ENABLE_NAT == "on" ]
 #Enable ip forwarding,otherwise device behind this GW won't reach Internet
-sysctl -w net.ipv4.ip_forward=1
+  then
+    sysctl -w net.ipv4.ip_forward=1
+fi
 }
 
 function del_system_configurations(){
-#disable forwarding
-sysctl -w net.ipv4.ip_forward=0
+if [ $ENABLE_NAT == "on" ]
+  then
+    #disable forwarding
+    sysctl -w net.ipv4.ip_forward=0
+fi
 
 #remove Qos modules
 rmmod ifb
@@ -99,8 +105,11 @@ fi
 }
 
 function add_iptables_rules(){
-#Outgoing NAT
-iptables -t nat -A POSTROUTING -o $WAN -j MASQUERADE
+if [ $ENABLE_NAT == "on" ]
+  then
+    #Outgoing NAT
+    iptables -t nat -A POSTROUTING -o $WAN -j MASQUERADE
+fi
 #Qos chains
 iptables -t mangle -N QOS_UPLOAD
 iptables -t mangle -N QOS_DOWNLOAD
@@ -294,7 +303,10 @@ if [ $ENABLE_L7 == "on" ]
     iptables -t mangle -D PREROUTING -j QOS_DPI
     iptables -t mangle -X QOS_DPI
 fi
-iptables -t nat -D POSTROUTING -o $WAN -j MASQUERADE
+if [ $ENABLE_NAT == "on" ]
+  then
+    iptables -t nat -D POSTROUTING -o $WAN -j MASQUERADE
+fi
 }
 
 function start(){
