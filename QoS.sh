@@ -23,6 +23,18 @@ if [ $ENABLE_NAT == "on" ]
   then
     sysctl -w net.ipv4.ip_forward=1
 fi
+
+if [ ! -e $LABEL_CONF ]
+  then
+    mkdir -p /etc/xtables/
+    echo "0 $APP_LABEL" > $LABEL_CONF
+  else
+    is_present=`grep -c $APP_LABEL $LABEL_CONF`
+    if [ $is_present -eq 0 ]
+      then
+        echo "0 $APP_LABEL" >> $LABEL_CONF
+    fi
+fi
 }
 
 function del_system_configurations(){
@@ -45,29 +57,33 @@ $IPTMAN -N QOS_DPI
 $IPTMAN -A PREROUTING -j QOS_DPI
 
 #DPI for applications
-$IPTMAN -A QOS_DPI -m connmark --mark $APP_LOW_PRIO_MARK -j RETURN
-$IPTMAN -A QOS_DPI -m connmark --mark $APP_BULK_MARK -j RETURN
-$IPTMAN -A QOS_DPI -m connmark --mark $APP_HIGH_PRIO_MARK -j RETURN
+### $IPTMAN -A QOS_DPI -m connmark --mark $APP_LOW_PRIO_MARK -j RETURN
+### $IPTMAN -A QOS_DPI -m connmark --mark $APP_BULK_MARK -j RETURN
+### $IPTMAN -A QOS_DPI -m connmark --mark $APP_HIGH_PRIO_MARK -j RETURN
+$IPTMAN -A QOS_DPI -m connlabel --label $APP_LABEL -j RETURN
 $IPTMAN -A QOS_DPI -m connbytes --connbytes-mode packets --connbytes-dir both --connbytes 20 -j RETURN
 if [ ${#LOW_PRIO_APP[@]} -gt 0 ]
   then
     for app in ${LOW_PRIO_APP[@]}
     do
-      $IPTMAN -A QOS_DPI -m ndpi --$app -j CONNMARK --set-mark $APP_LOW_PRIO_MARK
+      $IPTMAN -A QOS_DPI -m ndpi --$app -m connlabel --set --label $APP_LABEL -j CONNMARK --set-mark $DOWN_LOW_PRIO_MARK
+###      $IPTMAN -A QOS_DPI -m ndpi --$app -j CONNMARK --set-mark $APP_LOW_PRIO_MARK
     done
 fi
 if [ ${#BULK_PRIO_APP[@]} -gt 0 ]
   then
     for app in ${BULK_PRIO_APP[@]}
     do
-      $IPTMAN -A QOS_DPI -m ndpi --$app -j CONNMARK --set-mark $APP_BULK_MARK
+      $IPTMAN -A QOS_DPI -m ndpi --$app -m connlabel --set --label $APP_LABEL -j CONNMARK --set-mark $DOWN_BULK_MARK
+###      $IPTMAN -A QOS_DPI -m ndpi --$app -j CONNMARK --set-mark $APP_BULK_MARK
     done
 fi
 if [ ${#HIGH_PRIO_APP[@]} -gt 0 ]
   then
     for app in ${HIGH_PRIO_APP[@]}
     do
-      $IPTMAN -A QOS_DPI -m ndpi --$app -j CONNMARK --set-mark $APP_HIGH_PRIO_MARK
+      $IPTMAN -A QOS_DPI -m ndpi --$app -m connlabel --set --label $APP_LABEL -j CONNMARK --set-mark $DOWN_HIGH_PRIO_MARK
+###      $IPTMAN -A QOS_DPI -m ndpi --$app -j CONNMARK --set-mark $APP_HIGH_PRIO_MARK
     done
 fi
 $IPTMAN -A QOS_UPLOAD -m mark --mark $APP_HIGH_PRIO_MARK -j CLASSIFY --set-class 1:$UP_HIGH_PRIO_MARK
@@ -224,15 +240,15 @@ tc filter add dev $IFB parent 1:0 protocol ip handle $DOWN_LOW_PRIO_MARK fw flow
 tc filter add dev $IFB parent 1:0 protocol ip handle $DOWN_BULK_MARK fw flowid 1:$DOWN_BULK_MARK
 
 
-if [ $ENABLE_L7 == "on" ]
-  then
-    #use class [high prio]
-    tc filter add dev $IFB parent 1:0 protocol ip handle $APP_HIGH_PRIO_MARK fw flowid 1:$DOWN_HIGH_PRIO_MARK
-    #use class [low prio]
-    tc filter add dev $IFB parent 1:0 protocol ip handle $APP_LOW_PRIO_MARK fw flowid 1:$DOWN_LOW_PRIO_MARK
-    #use class [bulk traffic]
-    tc filter add dev $IFB parent 1:0 protocol ip handle $APP_BULK_MARK fw flowid 1:$DOWN_BULK_MARK
-fi
+### if [ $ENABLE_L7 == "on" ]
+###   then
+###     #use class [high prio]
+###     tc filter add dev $IFB parent 1:0 protocol ip handle $APP_HIGH_PRIO_MARK fw flowid 1:$DOWN_HIGH_PRIO_MARK
+###     #use class [low prio]
+###     tc filter add dev $IFB parent 1:0 protocol ip handle $APP_LOW_PRIO_MARK fw flowid 1:$DOWN_LOW_PRIO_MARK
+###     #use class [bulk traffic]
+###     tc filter add dev $IFB parent 1:0 protocol ip handle $APP_BULK_MARK fw flowid 1:$DOWN_BULK_MARK
+### fi
 
 # Tell which algorithm the classes use
 tc qdisc add dev $IFB parent 1:$DOWN_HIGH_PRIO_MARK sfq perturb 10

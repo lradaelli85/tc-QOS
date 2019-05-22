@@ -6,7 +6,7 @@ Linux QoS built with tc and HTB.
 
 - iproute2
 - act_mirred and act_connmark kernel support
-- {optional} [nDPI](https://github.com/ntop/nDPI) for L7 classification
+- {optional} [nDPI](https://github.com/betolj/ndpi-netfilter) for L7 classification
 
 # Features
 
