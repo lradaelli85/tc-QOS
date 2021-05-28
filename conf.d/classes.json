@@ -1,0 +1,24 @@
+{
+  "test" :
+    {
+      "remark" : "test_remark",
+      "mark" : "" ,
+      "up_min" : "",
+      "up_max" : "",
+      "down_min" : "",
+      "down_max" : "" ,
+      "device" : "" ,
+      "priority" : ""
+    },
+  "test2" :
+    {
+      "remark" : "test2_remark",
+      "mark" : "" ,
+      "up_min" : "",
+      "up_max" : "",
+      "down_min" : "",
+      "down_max" : "" ,
+      "device" : "" ,
+      "priority" : ""
+    }
+}

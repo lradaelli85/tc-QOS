@@ -1,0 +1,17 @@
+{
+                  "nat": "on" ,
+                  "layer7_detection" : "off" ,
+                  "slowdown" : "off" ,
+                  "l7_connlabel" : "NDPI-DETECTED",
+                  "bulk_default" : "off" ,
+                  "l7_mark_start" : "700",
+                  "l4_mark_start" : "4" ,
+                  "app_log"  : "on" ,
+                  "label_conf" : "/etc/xtables/connlabel.conf" ,
+                  "quantum" : "1514",
+                  "burst" : "15k" ,
+                  "classes_conf" : "conf.d/classes.json" ,
+                  "devices_conf" : "conf.d/devices.json" ,
+                  "rules_conf" : "conf.d/rules.json"
+                    
+}

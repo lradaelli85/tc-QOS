@@ -1,0 +1,7 @@
+{
+    "enp2s0": {
+        "upload": "1000mb",
+        "download": "1000mb",
+        "ifb_device": "ifb0"
+    }
+}
