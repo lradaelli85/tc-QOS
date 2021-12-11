@@ -1,24 +1,15 @@
 {
-  "test" :
-    {
-      "remark" : "test_remark",
-      "mark" : "" ,
-      "up_min" : "",
-      "up_max" : "",
-      "down_min" : "",
-      "down_max" : "" ,
-      "device" : "" ,
-      "priority" : ""
-    },
-  "test2" :
-    {
-      "remark" : "test2_remark",
-      "mark" : "" ,
-      "up_min" : "",
-      "up_max" : "",
-      "down_min" : "",
-      "down_max" : "" ,
-      "device" : "" ,
-      "priority" : ""
+    "abcd": {
+        "remark": "55555",
+        "mark": 85,
+        "up_min": "123",
+        "up_max": "123",
+        "down_min": "23423",
+        "down_max": "123123",
+        "device": "enp2s0",
+        "priority": 0,
+        "burst": "15k",
+        "quantum": "1514",
+        "ifb": "ifb0"
     }
 }

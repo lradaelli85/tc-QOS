@@ -61,10 +61,14 @@ class qos_device:
                 command('modprobe act_mirred').run()
             else:
                 command('ip link add {} type ifb'.format(ifb)).run()
-            command('ip link set dev {} up'.format(ifb)).run()
-            command('tc qdisc add dev {} root handle {}: htb'.format(ifb,str_dev_count))
-            command('tc qdisc add dev {} handle ffff: ingress'.format(dev_name)).run()
-            command('tc filter add dev {} parent ffff: protocol ip u32 match u32 0 0 action \
-                    connmark action mirred egress redirect dev {}'.format(dev_name,ifb)).run()
-            command('tc qdisc add dev {} root handle {}:0 htb'.format(dev_name,str_dev_count)).run()
+                command('ip link set dev {} up'.format(ifb)).run()
+                command('tc qdisc add dev {} root handle {}: htb'.format(ifb,str_dev_count))
+                command('tc qdisc add dev {} handle ffff: ingress'.format(dev_name)).run()
+                command('tc filter add dev {} parent ffff: protocol ip u32 match u32 0 0 action \
+                        connmark action mirred egress redirect dev {}'.format(dev_name,ifb)).run()
+                command('tc qdisc add dev {} root handle {}:0 htb'.format(dev_name,str_dev_count)).run()
+                command('tc class add dev {} parent 1: classid 1:1 htb rate {} burst {}'.format(
+                        ifb,download,'15k')).run()
+                command('tc class add dev {} parent 1: classid 1:1 htb rate {} burst $BURST'.format(
+                        dev_name,upload,'15k')).run()
             return True,'OK'

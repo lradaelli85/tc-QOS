@@ -10,7 +10,6 @@
       "proto" : "" ,
       "src_port" : "" ,
       "dst_port" : "" ,
-      "l7_app" : "" ,
       "slowdown_tresh" : ""
     },
   "rule2"
@@ -24,7 +23,6 @@
       "proto" : "" ,
       "src_port" : "" ,
       "dst_port" : "" ,
-      "l7_app" : "" ,
       "slowdown_tresh" : ""
     }
 }
