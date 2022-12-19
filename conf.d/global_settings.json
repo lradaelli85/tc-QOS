@@ -12,6 +12,6 @@
                   "burst" : "15k" ,
                   "classes_conf" : "conf.d/classes.json" ,
                   "devices_conf" : "conf.d/devices.json" ,
-                  "rules_conf" : "conf.d/rules.json"
+                  "rules_conf" : "conf.d/rules.json" 
                     
 }

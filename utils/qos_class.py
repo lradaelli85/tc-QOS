@@ -11,7 +11,6 @@ class qos_class:
             self.class_settings = tools().global_settings['classes_conf']
             self.base_mark = 85
             self.prio_map = {'high' : 0 , 'low' : 7 , 'bulk' : 5 }
-            #pass
 
         def list_classes(self):
             class_conf = tools().load_json(self.class_settings)
@@ -26,7 +25,6 @@ class qos_class:
                 attr_list.append(class_name)
                 remark,class_mark,upload_min,upload_max,download_min,download_max,device,prio,burst,quantum,ifb,class_name = attr_list
                 class_list.append([remark,upload_min,upload_max,download_min,download_max,device,prio,class_name])
-                #print(attr_list)
             table(['Remark','Guaranteed upload','Max upload','Guaranteed download','Max download',
                    'Interface','Priority','Class name'],class_list).print_table()
 

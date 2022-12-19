@@ -5,6 +5,7 @@ import argparse
 from sys import exit,argv
 from utils.qos_device import qos_device
 from utils.qos_class import qos_class
+from utils.qos_rule import qos_rule
 from utils.error_checker import qos_errors
 
 def add_qos_dev(args):
@@ -51,12 +52,21 @@ def list_qos_class(args):
 
 def add_qos_rule(args):
     print('Add QoS rule')
+    result = qos_rule().add_ipt_rule(args.src, args.dst, args.proto, args.dport,
+                                     args.sport, args.ifin, args.ifout, args.classify, 
+                                     args.remark, args.direction
+                                    )
+    #if not result[0]:
+        #print(qos_errors(result[1]))
+    #else:
+        #print('[OK]: Rule added\n')
 
 def del_qos_rule(args):
     print('del QoS rule')
 
 def list_qos_rules(args):
-    print('List QoS rule')
+    print('\nListing QoS rules')
+    qos_rule().list_ipt_rules()
 
 def CheckArgs():
     qos_classes_type = ['queue','slowdown']
@@ -120,11 +130,13 @@ def CheckArgs():
     add_rule.add_argument('--proto', choices=protocols)
     add_rule.add_argument('--dport', help='Destination port number')
     add_rule.add_argument('--sport', help='Source port number')
-    add_rule.add_argument('--in', help='Incoming interface')
-    add_rule.add_argument('--out', help='Outgoing interface')
-    add_rule.add_argument('--classify', help='QoS Class name')
+    add_rule.add_argument('--ifin', help='Incoming interface')
+    add_rule.add_argument('--ifout', help='Outgoing interface')
+    add_rule.add_argument('--classify', required=True, help='QoS Class name')
     add_rule.add_argument('--remark', help='Remark')
+    add_rule.add_argument('--direction',required=True, choices=['upload','download'], help='Direction [UPLOAD/DOWNLOAD]')
     #add_rule.add_argument('--slow-quota', help='Slowdown if traffic per session is greater')
+    add_rule.set_defaults(func=add_qos_rule)
     #Delete
     #List
     list_rule = parser_list_object.add_parser('rules')

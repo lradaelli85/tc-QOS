@@ -1,28 +1,3 @@
 {
-  "rule1" :
-    {
-      "remark" : "" ,
-      "class" : "" ,
-      "src_ip" : "" ,
-      "dst_ip" : "" ,
-      "src_dev" : "" ,
-      "dst_dev" : "" ,
-      "proto" : "" ,
-      "src_port" : "" ,
-      "dst_port" : "" ,
-      "slowdown_tresh" : ""
-    },
-  "rule2"
-    {
-      "remark" : "" ,
-      "class" : "" ,
-      "src_ip" : "" ,
-      "dst_ip" : "" ,
-      "src_dev" : "" ,
-      "dst_dev" : "" ,
-      "proto" : "" ,
-      "src_port" : "" ,
-      "dst_port" : "" ,
-      "slowdown_tresh" : ""
-    }
+
 }

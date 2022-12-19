@@ -1,0 +1,27 @@
+{
+    "3": {},
+    "rule2": {
+        "src_dev": "",
+        "class": "",
+        "dst_dev": "",
+        "dst_ip": "",
+        "dst_port": "",
+        "proto": "",
+        "src_ip": "",
+        "slowdown_tresh": "",
+        "src_port": "",
+        "remark": ""
+    },
+    "rule1": {
+        "src_dev": "",
+        "class": "",
+        "dst_dev": "",
+        "dst_ip": "",
+        "dst_port": "",
+        "proto": "",
+        "src_ip": "",
+        "slowdown_tresh": "",
+        "src_port": "",
+        "remark": ""
+    }
+}
