@@ -11,12 +11,6 @@ NFT_NAT_TABLE=tc_qos_nat
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "Command not found: $1"; }
 
-nft_ports() {
-    local value=${1//:/-}
-    value=${value//,/", "}
-    printf '{ %s }' "$value"
-}
-
 add_system_configurations() {
     need nft; need tc; need ip; need modprobe
     modprobe ifb
@@ -43,14 +37,14 @@ emit_port_rule() {
     local proto=$1 ports=$2 mark=$3
     [[ -n $ports ]] || return 0
     printf '        %s dport %s ct state new ct mark set %s return\n' \
-        "$proto" "$(nft_ports "$ports")" "$mark"
+        "$proto" "{ $ports }" "$mark"
 }
 
 emit_slowdown_rule() {
     local proto=$1 ports=$2
     [[ -n $ports ]] || return 0
     printf '        %s dport %s ct bytes >= %s ct mark set %s return\n' \
-        "$proto" "$(nft_ports "$ports")" "$SLOWDOWN_QUOTA" "$DOWN_LOW_PRIO_MARK"
+        "$proto" "{ $ports }" "$SLOWDOWN_QUOTA" "$DOWN_LOW_PRIO_MARK"
 }
 
 add_nftables_rules() {
