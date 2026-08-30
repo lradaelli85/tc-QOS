@@ -1,7 +1,7 @@
 # QOS
 
 Linux QoS built with tc and HTB.
-L7 support has been removed.
+L7 support has been removed. Legacy iptables script with L7 support is available [here](https://github.com/lradaelli85/tc-QOS/tree/legacy-iptables-ndpi)
 
 # Requirements
 
