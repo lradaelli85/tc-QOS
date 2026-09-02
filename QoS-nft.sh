@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE}")" && pwd)
 . "$SCRIPT_DIR/qos.cfg"
 
 NFT_TABLE=tc_qos
@@ -73,6 +73,7 @@ add_nftables_rules() {
         printf '        oifname "%s" ct mark 0 jump classify\n' "$WAN"
         echo '        meta mark set ct mark'
         printf '        oifname "%s" ct mark %s meta priority set 1:%s\n' "$WAN" "$DOWN_HIGH_PRIO_MARK" "$UP_HIGH_PRIO_MARK"
+        printf '        oifname "%s" ct mark %s meta priority set 1:%s\n' "$WAN" "$DOWN_LOW_PRIO_MARK" "$UP_LOW_PRIO_MARK" 2>/dev/null || \
         printf '        oifname "%s" ct mark %s meta priority set 1:%s\n' "$WAN" "$DOWN_LOW_PRIO_MARK" "$UP_LOW_PRIO_MARK"
         printf '        oifname "%s" ct mark %s meta priority set 1:%s\n' "$WAN" "$DOWN_BULK_MARK" "$UP_BULK_MARK"
         echo '    }'
@@ -120,8 +121,9 @@ add_qos_devs_and_classes() {
     tc qdisc add dev "$IFB" parent "1:$DOWN_LOW_PRIO_MARK" sfq perturb 10
     tc qdisc add dev "$IFB" parent "1:$DOWN_BULK_MARK" sfq perturb 10
 
+    # Gestione Ingress della WAN tramite TC senza l'azione connmark rimossa
     tc qdisc add dev "$WAN" handle ffff: ingress
-    tc filter add dev "$WAN" parent ffff: protocol ip u32 match u32 0 0 action connmark action mirred egress redirect dev "$IFB"
+    tc filter add dev "$WAN" parent ffff: protocol ip u32 match u32 0 0 action mirred egress redirect dev "$IFB"
 
     if [[ ${BULK_DEFAULT:-off} == on ]]; then
         tc qdisc add dev "$WAN" root handle 1: htb default "$UP_BULK_MARK"
