@@ -73,7 +73,6 @@ add_nftables_rules() {
         printf '        oifname "%s" ct mark 0 jump classify\n' "$WAN"
         echo '        meta mark set ct mark'
         printf '        oifname "%s" ct mark %s meta priority set 1:%s\n' "$WAN" "$DOWN_HIGH_PRIO_MARK" "$UP_HIGH_PRIO_MARK"
-        printf '        oifname "%s" ct mark %s meta priority set 1:%s\n' "$WAN" "$DOWN_LOW_PRIO_MARK" "$UP_LOW_PRIO_MARK" 2>/dev/null || \
         printf '        oifname "%s" ct mark %s meta priority set 1:%s\n' "$WAN" "$DOWN_LOW_PRIO_MARK" "$UP_LOW_PRIO_MARK"
         printf '        oifname "%s" ct mark %s meta priority set 1:%s\n' "$WAN" "$DOWN_BULK_MARK" "$UP_BULK_MARK"
         echo '    }'
