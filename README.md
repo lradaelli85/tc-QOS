@@ -6,7 +6,7 @@ L7 support has been removed. Legacy iptables script with L7 support is available
 # Requirements
 
 - iproute2
-- act_mirred and act_connmark kernel support
+- act_mirred kernel support
 
 # Features
 
